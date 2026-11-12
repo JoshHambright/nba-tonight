@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NBA TONIGHT · What's On & Where to Watch</title>
+  <meta name="description" content="Tonight's NBA games and the TV channels showing them — retro arcade style." />
+  <meta name="theme-color" content="#1a0b2e" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏀</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Inter:wght@300;400;600;800&family=Bungee&family=Bungee+Shade&family=Orbitron:wght@700;900&family=Luckiest+Guy&family=Comic+Neue:wght@700&family=Alfa+Slab+One&family=Oswald:wght@500;700&family=Barlow+Condensed:wght@600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="skins.css" />
+  <script>
+    // apply saved skin before paint to avoid a flash
+    (function () {
+      var s = new URLSearchParams(location.search).get("skin");
+      try { s = s || localStorage.getItem("nba-skin"); } catch (e) {}
+      document.documentElement.dataset.skin = s || "retro";
+    })();
+  </script>
+</head>
+<body>
+  <div class="skinbar">
+    <label for="skin">SKIN</label>
+    <select id="skin">
+      <option value="retro">🕹️ Arcade</option>
+      <option value="modern">◼ Modern</option>
+      <option value="simple">○ Simple</option>
+      <option value="minimal">— Minimalist</option>
+      <option value="maximal">✺ Maximalist</option>
+      <option value="y2k">✦ Y2K</option>
+      <option value="cartoon">📺 Saturday Morning</option>
+      <option value="card">🃏 Trading Card</option>
+      <option value="cable">📡 Cable Guide</option>
+      <option value="scoreboard">🟧 Scoreboard</option>
+      <option value="toy3d">🧱 Toy Box 3D</option>
+      <option value="zerog">🪐 Zero-G 3D</option>
+    </select>
+  </div>
+  <div class="sky" aria-hidden="true">
+    <div class="sun"></div>
+    <div class="grid"></div>
+  </div>
+  <div class="crt" aria-hidden="true"></div>
+
+  <header class="masthead">
+    <div class="ball" aria-hidden="true"></div>
+    <h1 class="logo" data-text="NBA TONIGHT">NBA<span>TONIGHT</span></h1>
+    <p class="tagline">★ WHAT'S ON ★ WHERE TO WATCH ★</p>
+    <div class="clock" id="clock" aria-hidden="true"></div>
+  </header>
+
+  <div class="ticker" aria-hidden="true"><div class="ticker-track" id="ticker"></div></div>
+
+  <nav class="controls" aria-label="Date and filters">
+    <div class="datebar">
+      <button class="btn" id="prev" aria-label="Previous day">◀</button>
+      <div class="date-display">
+        <span class="date-label" id="dateLabel">TONIGHT</span>
+        <span class="date-sub" id="dateSub"></span>
+      </div>
+      <button class="btn" id="next" aria-label="Next day">▶</button>
+    </div>
+    <div class="filters" role="group" aria-label="Filter games">
+      <button class="chip active" data-filter="all">ALL GAMES</button>
+      <button class="chip" data-filter="national">NATIONAL TV</button>
+      <button class="chip" data-filter="live">LIVE NOW</button>
+      <button class="chip today-chip" id="today" hidden>↺ BACK TO TODAY</button>
+    </div>
+  </nav>
+
+  <main id="games" class="games" aria-live="polite"></main>
+
+  <footer class="foot">
+    <p>Times shown in your local time zone · Data from ESPN · Auto-refreshes every 60s</p>
+    <p class="hi">HI-SCORE <span id="count">000</span> GAMES · PRESS ▶ FOR TOMORROW</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
