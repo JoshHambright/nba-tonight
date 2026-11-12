@@ -759,3 +759,110 @@ html[data-skin="zerog"] .skinbar select { border-radius: 999px; border: 1px soli
 /* skins that style the date panel themselves or want it bare */
 html:is([data-skin="modern"],[data-skin="simple"],[data-skin="minimal"],[data-skin="y2k"],[data-skin="zerog"],[data-skin="cable"]) .date-display { background: none; border: 0; box-shadow: none; padding: 0; }
 html[data-skin="toy3d"] .date-display { border: 0; }
+
+/* =========================================================
+   MOBILE — phones and small tablets (applies to every skin)
+   ========================================================= */
+html { overflow-x: clip; -webkit-text-size-adjust: 100%; }
+body { padding-bottom: env(safe-area-inset-bottom); }
+button, select { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
+@media (max-width: 640px) {
+  /* skin picker: an in-flow bar at the top instead of floating over the header */
+  .skinbar {
+    position: relative; top: auto !important; right: auto !important;
+    margin: calc(10px + env(safe-area-inset-top)) auto 0; width: max-content; max-width: calc(100% - 24px);
+    transform: none !important;
+  }
+  .skinbar select { font-size: 16px !important; min-height: 36px; max-width: 62vw; } /* 16px stops iOS zoom-on-focus */
+  .masthead { padding: 22px 14px 14px !important; }
+  html[data-skin="cable"] .masthead { margin-top: 12px; }
+  html[data-skin="minimal"] .masthead { padding-top: 28px !important; }
+
+  /* comfortable tap targets, filters on one row */
+  .controls { padding: 0 12px; margin-top: 16px; }
+  .datebar { gap: 10px; }
+  .date-display { min-width: 0; flex: 1; max-width: 240px; }
+  .btn { flex: none; width: 48px; height: 48px; }
+  .filters { flex-wrap: nowrap; gap: 6px; margin-top: 16px; }
+  .chip { flex: 1 1 0; min-height: 44px; padding: 8px 6px; white-space: nowrap; text-align: center; }
+  .today-chip:not([hidden]) { flex-basis: 100%; }
+  .filters:has(.today-chip:not([hidden])) { flex-wrap: wrap; }
+  html[data-skin="retro"] .chip { font-size: 8px; letter-spacing: 0; }
+  html:not([data-skin="retro"]) .chip { font-size: 12px; }
+  html[data-skin="minimal"] .chip { flex: 0 0 auto; min-height: 36px; font-size: 11px; }
+  html[data-skin="maximal"] .chip, html[data-skin="maximal"] .chip:nth-child(n) { transform: none; }
+  html[data-skin="maximal"] .btn { width: 42px; height: 42px; }
+  html[data-skin="scoreboard"] .chip { font-size: 15px !important; letter-spacing: 0; padding: 6px 2px; }
+  html[data-skin="cable"] .chip { font-size: 14px; }
+
+  /* cards: one column, full width */
+  .games { grid-template-columns: 1fr !important; gap: 20px; padding: 0 12px; margin-top: 18px; }
+  .game { box-shadow: 5px 5px 0 var(--edge); }
+  .team img { width: 56px; height: 56px; }
+  .matchup { padding: 8px 10px 12px; }
+  .watch { padding: 10px 12px 12px; }
+  .badge { padding: 6px 8px; }
+  .chan-row .mkt { min-width: 52px; }
+
+  /* header type that ran off the edge */
+  .logo { font-size: clamp(30px, 11vw, 48px) !important; }
+  html[data-skin="retro"] .tagline { font-size: 18px; }
+  html[data-skin="scoreboard"] .logo { padding: 6px 14px; border-width: 5px; letter-spacing: 2px; outline-offset: 3px; }
+  html[data-skin="scoreboard"] .logo span { display: block; margin: 0; letter-spacing: 2px; }
+  html[data-skin="scoreboard"] .tagline { font-size: 19px; margin-top: 22px; }
+  html[data-skin="cable"] .masthead { grid-template-columns: 1fr; text-align: center; }
+  html[data-skin="cable"] .clock { grid-column: 1; grid-row: auto; justify-self: center; font-size: 26px; margin-top: 10px; }
+  html[data-skin="cable"] .tagline { font-size: 15px; }
+  html[data-skin="cable"] .controls { flex-direction: column; align-items: stretch; }
+  html[data-skin="cable"] .datebar { justify-content: space-between; }
+  html[data-skin="cable"] .masthead, html[data-skin="cable"] .ticker,
+  html[data-skin="cable"] .controls, html[data-skin="cable"] .games { margin-left: 8px; margin-right: 8px; }
+  html[data-skin="cable"] .games { padding: 0; }
+  html[data-skin="maximal"] .logo, html[data-skin="maximal"] .ticker { transform: none; }
+  html[data-skin="maximal"] .game:nth-child(n) { transform: none; }
+  html[data-skin="maximal"] .game { box-shadow: 6px 6px 0 var(--pink), 10px 10px 0 var(--ink); margin-right: 10px; }
+  html[data-skin="cartoon"] .logo { font-size: clamp(36px, 13vw, 60px) !important; }
+  html[data-skin="cartoon"] .tagline { font-size: 16px; }
+  html[data-skin="cartoon"] .game:nth-child(n) { transform: none; }
+  html[data-skin="card"] .game { aspect-ratio: auto; margin: 0 6px; }
+  html[data-skin="card"] .game:nth-child(odd) { transform: rotate(-1deg); }
+  html[data-skin="card"] .game:nth-child(even) { transform: rotate(1deg); }
+
+  /* row layouts (Minimalist / Cable / Scoreboard) */
+  html:is([data-skin="minimal"],[data-skin="cable"],[data-skin="scoreboard"]) .game-top { padding: 12px 14px 0; border: 0 !important; background: none !important; }
+  html:is([data-skin="minimal"],[data-skin="cable"],[data-skin="scoreboard"]) .watch { border: 0 !important; }
+  html:is([data-skin="minimal"],[data-skin="cable"],[data-skin="scoreboard"]) .team img { width: 28px; height: 28px; }
+  html[data-skin="scoreboard"] .tip { font-size: 30px; }
+  html[data-skin="scoreboard"] .abbr { font-size: 30px; min-width: 56px; }
+  html[data-skin="scoreboard"] .score { font-size: 32px; }
+  html[data-skin="scoreboard"] .rec { white-space: nowrap; }
+  html[data-skin="scoreboard"] .game { box-shadow: none; }
+  html[data-skin="cable"] .tip { font-size: 26px; }
+
+  /* 3D skins: calmer motion so cards stay on screen and off the buttons */
+  html[data-skin="toy3d"] .game { transform: rotateX(var(--rx, 5deg)) rotateY(var(--ry, 0deg)); margin: 0 4px 10px; }
+  html[data-skin="toy3d"] .ticker { transform: none; }
+  html[data-skin="zerog"] .games { gap: 34px; padding-top: 24px; }
+  html[data-skin="zerog"] .game { animation-name: zfloat-sm; }
+  html[data-skin="zerog"] .filters { position: relative; z-index: 3; }
+}
+@keyframes zfloat-sm {
+  0%, 100% { transform: rotateX(4deg) rotateY(-5deg) rotateZ(-.5deg); }
+  50%      { transform: translateY(-8px) rotateX(-3deg) rotateY(5deg) rotateZ(.5deg); }
+}
+
+/* very narrow phones */
+@media (max-width: 370px) {
+  .chip { font-size: 11px !important; padding: 8px 4px; }
+  html[data-skin="retro"] .chip { font-size: 7px !important; }
+  .team img { width: 46px; height: 46px; }
+  .abbr { font-size: 17px !important; }
+  .score { font-size: 20px !important; min-width: 50px; }
+}
+
+/* touch screens: no sticky hover lifts */
+@media (hover: none) {
+  .game:hover, .chip:hover { transform: none; }
+  html[data-skin="maximal"] .game:hover, html[data-skin="card"] .game:hover { transform: none; }
+}

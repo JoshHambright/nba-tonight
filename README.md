@@ -6,6 +6,7 @@ A retro, synthwave-arcade web app that shows tonight's NBA games and the TV chan
 - Tip-off times in your local time zone
 - Live scores while games are on, refreshed every 60 seconds
 - Filters: All games / National TV / Live now
+- Mobile-friendly: single-column cards, thumb-sized buttons and no sideways scrolling on phones
 - ◀ ▶ buttons (or arrow keys) to browse other days
 - 12 skins with a picker in the top-right (your choice is remembered; share one with `?skin=cable`): Arcade, Modern, Simple, Minimalist, Maximalist, Y2K, Saturday Morning, Trading Card, Cable Guide, Scoreboard, Toy Box 3D, Zero-G 3D
 
