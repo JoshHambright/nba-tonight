@@ -5,7 +5,10 @@ A retro, synthwave-arcade web app that shows tonight's NBA games and the TV chan
 - Live data from ESPN's public scoreboard feed, so there's no API key or backend
 - Tip-off times in your local time zone
 - Live scores while games are on, refreshed every 60 seconds
-- Filters: All games / National TV / Live now
+- **Can Watch** (default): only games on national TV, plus every game for your home team (Pacers, with a DAZN badge). Local-TV-only games are hidden, with a one-tap "show all"
+- Live games sort to the top, then upcoming games by tip-off, then finals
+- Filters: Can Watch / Live now / All games
+- Different home team? Add `?team=BOS` (any ESPN abbreviation) to the URL, or change `MY_TEAM` / `MY_FEED` at the top of `app.js`
 - Mobile-friendly: single-column cards, thumb-sized buttons and no sideways scrolling on phones
 - ◀ ▶ buttons (or arrow keys) to browse other days
 - 12 skins with a picker in the top-right (your choice is remembered; share one with `?skin=cable`): Arcade, Modern, Simple, Minimalist, Maximalist, Y2K, Saturday Morning, Trading Card, Cable Guide, Scoreboard, Toy Box 3D, Zero-G 3D

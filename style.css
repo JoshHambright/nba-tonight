@@ -248,7 +248,8 @@ body {
 .badge.peacock{ background: #000; color: #fff; border-color: #fff; }
 .badge.prime  { background: #00a8e1; color: #001f2b; }
 .badge.nbatv  { background: #1d428a; border-color: #c8102e; }
-.badge.lp     { background: var(--teal); color: var(--edge); }
+.badge.lp     { background: var(--teal); color: #0d0518; }
+.badge.yours  { background: #0c0c0c; color: #f7ff1a; border-color: #f7ff1a; }
 .badge.national { outline: 2px solid var(--yellow); outline-offset: 2px; }
 .none { color: var(--muted); font-size: 19px; }
 
@@ -288,3 +289,8 @@ body {
 
 /* readable date panel over the synthwave sun */
 .date-display { background: rgba(13,5,24,.8); border: 3px solid var(--teal); padding: 8px 14px; box-shadow: 4px 4px 0 var(--edge); }
+
+/* "N games hidden" note under the list */
+.hidden-note { grid-column: 1 / -1; text-align: center; color: var(--muted); font-size: 18px; padding: 8px 0 4px; }
+.hidden-note .chip, .message .chip { margin-left: 6px; display: inline-block; flex: none; }
+html:not([data-skin="retro"]) .hidden-note { font-size: 14px; }

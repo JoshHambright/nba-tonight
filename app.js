@@ -3,9 +3,14 @@
 const API = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard";
 const REFRESH_MS = 60_000;
 
+// Your home-market team: its games are always shown, with your local feed added.
+// Override with ?team=XXX (ESPN abbreviation, e.g. IND, BOS, GS).
+const MY_TEAM = (new URLSearchParams(location.search).get("team") || "IND").toUpperCase();
+const MY_FEED = "DAZN"; // how you watch your home team
+
 const $ = (s) => document.querySelector(s);
 const gamesEl = $("#games");
-const state = { day: startOfDay(new Date()), filter: "all", events: [], timer: null };
+const state = { day: startOfDay(new Date()), filter: "watch", events: [], timer: null };
 
 function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
 function ymd(d) {
@@ -61,10 +66,14 @@ function parse(ev) {
   };
   const st = ev.status?.type || comp.status?.type || {};
   const channels = getChannels(comp);
+  const away = pick("away"), home = pick("home");
+  const mine = away.abbr === MY_TEAM || home.abbr === MY_TEAM;
+  const national = channels.some((c) => c.market === "national");
   return {
-    id: ev.id, date: new Date(ev.date), away: pick("away"), home: pick("home"),
+    mine, watchable: national || mine,
+    id: ev.id, date: new Date(ev.date), away, home,
     state: st.state || "pre", detail: st.shortDetail || st.detail || "", tbd: comp.timeValid === false,
-    channels, national: channels.some((c) => c.market === "national"),
+    channels, national,
     venue: comp.venue ? [comp.venue.fullName, comp.venue.address?.city, comp.venue.address?.state].filter(Boolean).join(" · ") : "",
   };
 }
@@ -76,7 +85,8 @@ function statusText(g) {
   if (g.state === "in") return `● LIVE ${g.detail.toUpperCase()}`;
   if (g.state === "post") return g.detail.toUpperCase() || "FINAL";
   if (/postponed|canceled|cancelled/i.test(g.detail)) return g.detail.toUpperCase();
-  return g.national ? "NATIONAL TV" : "TIP-OFF";
+  if (g.mine) return "★ YOUR TEAM";
+  return g.national ? "NATIONAL TV" : "LOCAL TV ONLY";
 }
 
 function teamHTML(t, g) {
@@ -92,13 +102,16 @@ function teamHTML(t, g) {
 }
 
 function channelsHTML(g) {
+  const yours = g.mine
+    ? `<div class="chan-row"><span class="mkt">You</span><span class="badge yours national">${esc(MY_FEED)}</span></div>`
+    : "";
   if (!g.channels.length) {
-    return `<div class="none">No TV listed yet · try NBA League Pass</div>`;
+    return yours || `<div class="none">No TV listed yet · try NBA League Pass</div>`;
   }
   const groups = {};
   for (const c of g.channels) (groups[c.market] ||= []).push(c);
   const label = { national: "National", home: g.home.abbr, away: g.away.abbr };
-  return Object.entries(groups).map(([mkt, list]) => `
+  return yours + Object.entries(groups).map(([mkt, list]) => `
     <div class="chan-row">
       <span class="mkt">${esc(label[mkt] || mkt)}</span>
       ${list.map((c) => `<span class="badge ${netClass(c.name)} ${mkt === "national" ? "national" : ""} ${c.stream ? "stream" : ""}">${esc(c.name)}</span>`).join("")}
@@ -135,24 +148,35 @@ function message(title, sub, loading = false) {
 function render() {
   if (!state.loaded) return;
   let list = state.events;
-  if (state.filter === "national") list = list.filter((g) => g.national);
-  if (state.filter === "live") list = list.filter((g) => g.state === "in");
+  if (state.filter === "watch") list = list.filter((g) => g.watchable);
+  if (state.filter === "live") list = list.filter((g) => g.state === "in" && g.watchable);
 
-  $("#count").textContent = String(state.events.length).padStart(3, "0");
-  renderTicker();
+  $("#count").textContent = String(list.length).padStart(3, "0");
+  renderTicker(list);
 
   if (!state.events.length) {
     return message("NO GAMES ON THE SLATE", `<span class="blink">INSERT COIN</span> · press ▶ to check another day`);
   }
+  const hidden = state.events.length - state.events.filter((g) => g.watchable).length;
+  const showAll = `<button class="chip" data-jump="all">SHOW ALL ${state.events.length} GAMES</button>`;
   if (!list.length) {
-    const why = state.filter === "live" ? "NO GAMES LIVE RIGHT NOW" : "NO NATIONAL TV GAMES";
-    return message(why, "Switch to ALL GAMES to see the full slate");
+    const why = state.filter === "live" ? "NOTHING YOU CAN WATCH IS LIVE RIGHT NOW" : "NO NATIONAL TV OR " + MY_TEAM + " GAMES";
+    return message(why, `${hidden} game${hidden === 1 ? "" : "s"} on local TV only<br><br>${showAll}`);
   }
-  gamesEl.innerHTML = list.map(gameHTML).join("");
+  const note = state.filter !== "all" && hidden
+    ? `<div class="hidden-note">${hidden} game${hidden === 1 ? "" : "s"} on local TV only hidden · ${showAll}</div>`
+    : "";
+  gamesEl.innerHTML = list.map(gameHTML).join("") + note;
 }
 
-function renderTicker() {
-  const items = state.events.map((g) => {
+// Live games first, then upcoming by tip-off, then finished games.
+function sortGames(a, b) {
+  const rank = { in: 0, pre: 1, post: 2 };
+  return (rank[a.state] ?? 1) - (rank[b.state] ?? 1) || a.date - b.date;
+}
+
+function renderTicker(list) {
+  const items = list.map((g) => {
     const tv = g.channels.filter((c) => c.market === "national").map((c) => c.name).join("/") ||
                g.channels.map((c) => c.name).slice(0, 2).join("/") || "TV TBA";
     const when = g.state === "pre" ? timeStr(g.date) : g.state === "in" ? `LIVE ${g.away.score}-${g.home.score}` : `FINAL ${g.away.score}-${g.home.score}`;
@@ -180,7 +204,7 @@ async function load({ quiet = false } = {}) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (key !== ymd(state.day)) return; // user moved on
-    state.events = (data.events || []).map(parse).sort((a, b) => a.date - b.date);
+    state.events = (data.events || []).map(parse).sort(sortGames);
     state.loaded = true;
     render();
   } catch (err) {
@@ -206,13 +230,18 @@ function shift(days) {
 $("#prev").addEventListener("click", () => shift(-1));
 $("#next").addEventListener("click", () => shift(1));
 $("#today").addEventListener("click", () => { state.day = startOfDay(new Date()); load(); });
+function setFilter(f) {
+  state.filter = f;
+  document.querySelectorAll(".chip[data-filter]").forEach((b) => b.classList.toggle("active", b.dataset.filter === f));
+  render();
+}
 document.querySelectorAll(".chip[data-filter]").forEach((btn) =>
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".chip[data-filter]").forEach((b) => b.classList.toggle("active", b === btn));
-    state.filter = btn.dataset.filter;
-    render();
-  })
+  btn.addEventListener("click", () => setFilter(btn.dataset.filter))
 );
+gamesEl.addEventListener("click", (e) => {
+  const j = e.target.closest("[data-jump]");
+  if (j) setFilter(j.dataset.jump);
+});
 document.addEventListener("keydown", (e) => {
   if (e.target.closest("input,textarea")) return;
   if (e.key === "ArrowLeft") shift(-1);
