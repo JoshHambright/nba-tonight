@@ -758,3 +758,4 @@ html[data-skin="zerog"] .skinbar select { border-radius: 999px; border: 1px soli
 }
 /* skins that style the date panel themselves or want it bare */
 html:is([data-skin="modern"],[data-skin="simple"],[data-skin="minimal"],[data-skin="y2k"],[data-skin="zerog"],[data-skin="cable"]) .date-display { background: none; border: 0; box-shadow: none; padding: 0; }
+html[data-skin="toy3d"] .date-display { border: 0; }
