@@ -178,6 +178,7 @@ function render() {
     const next = state.nextDay
       ? `<br><br><button class="chip" data-goto="${ymd(state.nextDay)}">NEXT ${esc(L().name)} GAMES: ${esc(state.nextDay.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }).toUpperCase())} ▶</button>`
       : "";
+    if (state.offSeason) return message(`IT'S THE ${esc(L().name)} OFF-SEASON`, `No games scheduled yet · <span class="blink">INSERT COIN</span> and check back next season`);
     return message(`NO ${esc(L().name)} GAMES ON THE SLATE`, `<span class="blink">INSERT COIN</span> · press ▶ to check another day${next}`);
   }
   const hidden = state.events.length - state.events.filter((g) => g.watchable).length;
@@ -229,6 +230,8 @@ async function load({ quiet = false } = {}) {
     const data = await res.json();
     if (key !== ymd(state.day) || want !== league) return; // user moved on
     state.nextDay = nextGameDay(data);
+    state.offSeason = false;
+    if (!(data.events || []).length && !state.nextDay) await findNextFromCurrent(want, key);
     state.events = (data.events || []).map(parse).sort(sortGames);
     state.loaded = true;
     render();
@@ -247,6 +250,19 @@ function nextGameDay(data) {
     return new Date(y, m - 1, d);
   });
   return days.find((d) => d > state.day) || null;
+}
+
+// Leagues without a day-by-day calendar (NFL) or between seasons: ESPN's date-less
+// scoreboard holds the current week's slate, or the last games played.
+async function findNextFromCurrent(want, key) {
+  try {
+    const d = await fetch(`${API_BASE}/${L().path}/scoreboard`, { cache: "no-store" }).then((r) => r.json());
+    if (key !== ymd(state.day) || want !== league) return;
+    const end = new Date(state.day); end.setDate(end.getDate() + 1);
+    const upcoming = (d.events || []).map((e) => new Date(e.date)).filter((t) => t >= end).sort((a, b) => a - b)[0];
+    if (upcoming) state.nextDay = startOfDay(upcoming);
+    else if ((d.events || []).every((e) => new Date(e.date) < startOfDay(new Date()))) state.offSeason = true;
+  } catch (e) { /* the plain "no games" message is fine */ }
 }
 
 function schedule() {
