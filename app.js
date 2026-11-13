@@ -1,16 +1,29 @@
-// NBA TONIGHT — what's on and where to watch.
+// TONIGHT — what's on and where to watch, for the major US leagues.
 // Data: ESPN public scoreboard feed (CORS-enabled, no key needed).
-const API = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard";
+const API_BASE = "https://site.api.espn.com/apis/site/v2/sports";
 const REFRESH_MS = 60_000;
 
-// Your home-market team: its games are always shown, with your local feed added.
-// Override with ?team=XXX (ESPN abbreviation, e.g. IND, BOS, GS).
-const MY_TEAM = (new URLSearchParams(location.search).get("team") || "IND").toUpperCase();
-const MY_FEED = "DAZN"; // how you watch your home team
+// team/feed = your home-market team for that league: its games are always shown,
+// with your local feed added. Override for the current league with ?team=XXX.
+const LEAGUES = {
+  nba:  { name: "NBA",  path: "basketball/nba",  emoji: "🏀", pass: "NBA League Pass", team: "IND", feed: "DAZN" },
+  wnba: { name: "WNBA", path: "basketball/wnba", emoji: "🏀", pass: "WNBA League Pass" },
+  nhl:  { name: "NHL",  path: "hockey/nhl",      emoji: "🏒", pass: "ESPN+" },
+  mlb:  { name: "MLB",  path: "baseball/mlb",    emoji: "⚾", pass: "MLB.TV" },
+  nfl:  { name: "NFL",  path: "football/nfl",    emoji: "🏈", pass: "NFL Sunday Ticket" },
+  mls:  { name: "MLS",  path: "soccer/usa.1",    emoji: "⚽", pass: "Apple TV" },
+};
+const params = new URLSearchParams(location.search);
+const TEAM_PARAM = (params.get("team") || "").toUpperCase();
+let league = document.documentElement.dataset.league;
+if (!LEAGUES[league]) league = "nba";
+const L = () => LEAGUES[league];
+const myTeam = () => TEAM_PARAM || L().team || "";
+const myFeed = () => L().feed || "Your local feed";
 
 const $ = (s) => document.querySelector(s);
 const gamesEl = $("#games");
-const state = { day: startOfDay(new Date()), filter: "watch", events: [], timer: null };
+const state = { day: startOfDay(new Date()), filter: "watch", events: [], timer: null, nextDay: null };
 
 function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
 function ymd(d) {
@@ -30,7 +43,14 @@ function netClass(name) {
   if (n.includes("nbc")) return "nbc";
   if (n.includes("prime") || n.includes("amazon")) return "prime";
   if (n.includes("nba tv")) return "nbatv";
-  if (n.includes("league pass")) return "lp";
+  if (n.includes("league pass") || n.includes("mlb.tv")) return "lp";
+  if (n.includes("apple")) return "apple";
+  if (n.includes("fox") || n.includes("fs1")) return "fox";
+  if (n.includes("cbs") || n.includes("paramount")) return "cbs";
+  if (/\b(tnt|tbs|trutv|max|hbo)\b/.test(n)) return "tnt";
+  if (n.includes("netflix")) return "netflix";
+  if (n.includes("ion")) return "ion";
+  if (/(nhl|mlb|nfl) network/.test(n)) return "nbatv";
   return "";
 }
 
@@ -67,7 +87,7 @@ function parse(ev) {
   const st = ev.status?.type || comp.status?.type || {};
   const channels = getChannels(comp);
   const away = pick("away"), home = pick("home");
-  const mine = away.abbr === MY_TEAM || home.abbr === MY_TEAM;
+  const mine = !!myTeam() && (away.abbr === myTeam() || home.abbr === myTeam());
   const national = channels.some((c) => c.market === "national");
   return {
     mine, watchable: national || mine,
@@ -103,10 +123,10 @@ function teamHTML(t, g) {
 
 function channelsHTML(g) {
   const yours = g.mine
-    ? `<div class="chan-row"><span class="mkt">You</span><span class="badge yours national">${esc(MY_FEED)}</span></div>`
+    ? `<div class="chan-row"><span class="mkt">You</span><span class="badge yours national">${esc(myFeed())}</span></div>`
     : "";
   if (!g.channels.length) {
-    return yours || `<div class="none">No TV listed yet · try NBA League Pass</div>`;
+    return yours || `<div class="none">No TV listed yet · try ${esc(L().pass)}</div>`;
   }
   const groups = {};
   for (const c of g.channels) (groups[c.market] ||= []).push(c);
@@ -155,12 +175,15 @@ function render() {
   renderTicker(list);
 
   if (!state.events.length) {
-    return message("NO GAMES ON THE SLATE", `<span class="blink">INSERT COIN</span> · press ▶ to check another day`);
+    const next = state.nextDay
+      ? `<br><br><button class="chip" data-goto="${ymd(state.nextDay)}">NEXT ${esc(L().name)} GAMES: ${esc(state.nextDay.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }).toUpperCase())} ▶</button>`
+      : "";
+    return message(`NO ${esc(L().name)} GAMES ON THE SLATE`, `<span class="blink">INSERT COIN</span> · press ▶ to check another day${next}`);
   }
   const hidden = state.events.length - state.events.filter((g) => g.watchable).length;
   const showAll = `<button class="chip" data-jump="all">SHOW ALL ${state.events.length} GAMES</button>`;
   if (!list.length) {
-    const why = state.filter === "live" ? "NOTHING YOU CAN WATCH IS LIVE RIGHT NOW" : "NO NATIONAL TV OR " + MY_TEAM + " GAMES";
+    const why = state.filter === "live" ? "NOTHING YOU CAN WATCH IS LIVE RIGHT NOW" : (myTeam() ? `NO NATIONAL TV OR ${esc(myTeam())} GAMES` : "NO NATIONAL TV GAMES");
     return message(why, `${hidden} game${hidden === 1 ? "" : "s"} on local TV only<br><br>${showAll}`);
   }
   const note = state.filter !== "all" && hidden
@@ -180,7 +203,7 @@ function renderTicker(list) {
     const tv = g.channels.filter((c) => c.market === "national").map((c) => c.name).join("/") ||
                g.channels.map((c) => c.name).slice(0, 2).join("/") || "TV TBA";
     const when = g.state === "pre" ? timeStr(g.date) : g.state === "in" ? `LIVE ${g.away.score}-${g.home.score}` : `FINAL ${g.away.score}-${g.home.score}`;
-    return `<span>🏀 ${esc(g.away.abbr)} @ ${esc(g.home.abbr)} · ${esc(when)} · <b>${esc(tv)}</b></span>`;
+    return `<span>${L().emoji} ${esc(g.away.abbr)} @ ${esc(g.home.abbr)} · ${esc(when)} · <b>${esc(tv)}</b></span>`;
   });
   $("#ticker").innerHTML = items.length ? items.join("") + items.join("") : `<span>NO GAMES TODAY · GO OUTSIDE · TOUCH GRASS</span>`;
 }
@@ -200,10 +223,12 @@ async function load({ quiet = false } = {}) {
   if (!quiet) { state.loaded = false; message("LOADING...", "Tuning the rabbit ears", true); }
   const key = ymd(state.day);
   try {
-    const res = await fetch(`${API}?dates=${key}`, { cache: "no-store" });
+    const want = league;
+    const res = await fetch(`${API_BASE}/${L().path}/scoreboard?dates=${key}`, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    if (key !== ymd(state.day)) return; // user moved on
+    if (key !== ymd(state.day) || want !== league) return; // user moved on
+    state.nextDay = nextGameDay(data);
     state.events = (data.events || []).map(parse).sort(sortGames);
     state.loaded = true;
     render();
@@ -212,6 +237,16 @@ async function load({ quiet = false } = {}) {
     if (!quiet) message("SIGNAL LOST", `Couldn't reach the scoreboard (${esc(err.message)}). <span class="blink">PRESS ▶ OR ◀ TO RETRY</span>`);
   }
   schedule();
+}
+
+// ESPN lists the league's game days in its calendar; find the next one after the shown day.
+function nextGameDay(data) {
+  const cal = data.leagues?.[0]?.calendar || [];
+  const days = cal.filter((c) => typeof c === "string").map((c) => {
+    const [y, m, d] = c.slice(0, 10).split("-").map(Number);
+    return new Date(y, m - 1, d);
+  });
+  return days.find((d) => d > state.day) || null;
 }
 
 function schedule() {
@@ -241,12 +276,36 @@ document.querySelectorAll(".chip[data-filter]").forEach((btn) =>
 gamesEl.addEventListener("click", (e) => {
   const j = e.target.closest("[data-jump]");
   if (j) setFilter(j.dataset.jump);
+  const go = e.target.closest("[data-goto]");
+  if (go) {
+    const v = go.dataset.goto;
+    state.day = new Date(+v.slice(0, 4), +v.slice(4, 6) - 1, +v.slice(6, 8));
+    load();
+  }
 });
 document.addEventListener("keydown", (e) => {
   if (e.target.closest("input,textarea")) return;
   if (e.key === "ArrowLeft") shift(-1);
   if (e.key === "ArrowRight") shift(1);
 });
+// ---------- leagues ----------
+function applyLeague() {
+  document.documentElement.dataset.league = league;
+  $("#league").value = league;
+  $(".logo").innerHTML = `${esc(L().name)}<span>TONIGHT</span>`;
+  document.title = `${L().name} TONIGHT · What's On & Where to Watch`;
+}
+$("#league").addEventListener("change", (e) => {
+  league = e.target.value;
+  try { localStorage.setItem("nba-league", league); } catch (err) {}
+  const url = new URL(location.href);
+  url.searchParams.set("league", league);
+  history.replaceState(null, "", url);
+  applyLeague();
+  load();
+});
+applyLeague();
+
 // ---------- skins ----------
 const skinSel = $("#skin");
 skinSel.value = document.documentElement.dataset.skin;

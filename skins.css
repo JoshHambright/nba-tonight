@@ -866,3 +866,46 @@ button, select { touch-action: manipulation; -webkit-tap-highlight-color: transp
   .game:hover, .chip:hover { transform: none; }
   html[data-skin="maximal"] .game:hover, html[data-skin="card"] .game:hover { transform: none; }
 }
+
+/* =========================================================
+   LEAGUE picker + league-themed bouncing ball
+   ========================================================= */
+.skinbar { flex-wrap: wrap; justify-content: center; row-gap: 6px; }
+.skinbar label[for="skin"] { margin-left: 6px; }
+@media (max-width: 640px) {
+  .skinbar select { max-width: 40vw; }
+  .skinbar label[for="skin"] { margin-left: 2px; }
+}
+
+/* hockey puck */
+html[data-league="nhl"] .ball {
+  width: 54px !important; height: 20px !important; border-radius: 50%; border: 0 !important;
+  background: linear-gradient(#3a3a3a, #0a0a0a); box-shadow: 0 6px 0 #000, 0 0 16px rgba(45,226,230,.5);
+}
+/* baseball */
+html[data-league="mlb"] .ball { background: radial-gradient(circle at 35% 30%, #fff, #e8e2d4 70%, #c9c0aa); box-shadow: 0 0 18px rgba(255,255,255,.5); overflow: hidden; }
+html[data-league="mlb"] .ball::before, html[data-league="mlb"] .ball::after {
+  clip-path: none; border: 2px dashed #d0242b; inset: 6% 62% 6% -40%;
+}
+html[data-league="mlb"] .ball::after { inset: 6% -40% 6% 62%; }
+/* football */
+html[data-league="nfl"] .ball {
+  width: 62px !important; height: 36px !important; border-radius: 50% / 50%;
+  background: radial-gradient(ellipse at 40% 30%, #b46a3c, #7a3d1c 70%); box-shadow: 0 0 16px rgba(180,106,60,.6);
+}
+html[data-league="nfl"] .ball::before { clip-path: none; border: 0; inset: 46% 30% 46% 30%; background: #fff; border-radius: 2px; }
+html[data-league="nfl"] .ball::after { clip-path: none; border: 0; inset: 34% 46% 34% 46%; background: repeating-linear-gradient(90deg, transparent 0 0); box-shadow: -8px 0 0 #fff, 0 0 0 #fff, 8px 0 0 #fff; background: #fff; width: 2px; left: calc(50% - 1px); }
+/* soccer ball */
+html[data-league="mls"] .ball {
+  background:
+    radial-gradient(circle at 50% 50%, #111 0 20%, transparent 21%),
+    radial-gradient(circle at 15% 30%, #111 0 10%, transparent 11%),
+    radial-gradient(circle at 85% 30%, #111 0 10%, transparent 11%),
+    radial-gradient(circle at 30% 88%, #111 0 10%, transparent 11%),
+    radial-gradient(circle at 70% 88%, #111 0 10%, transparent 11%),
+    radial-gradient(circle at 35% 30%, #fff, #ddd);
+  box-shadow: 0 0 18px rgba(255,255,255,.5);
+}
+html[data-league="mls"] .ball::before, html[data-league="mls"] .ball::after { display: none; }
+/* WNBA ball: orange & white panels */
+html[data-league="wnba"] .ball { background: conic-gradient(#ff8a3d 0 25%, #fef6e4 0 50%, #ff8a3d 0 75%, #fef6e4 0); }
