@@ -196,10 +196,10 @@ function render() {
   const showAll = `<button class="chip" data-jump="all">SHOW ALL ${state.events.length} GAMES</button>`;
   if (!list.length) {
     const why = state.filter === "live" ? "NOTHING YOU CAN WATCH IS LIVE RIGHT NOW" : (myTeam() ? `NO NATIONAL TV OR ${esc(myTeam())} GAMES` : "NO NATIONAL TV GAMES");
-    return message(why, `${hidden} game${hidden === 1 ? "" : "s"} on local TV only<br><br>${showAll}`);
+    return message(why, `${hidden} game${hidden === 1 ? "" : "s"} not on national TV<br><br>${showAll}`);
   }
   const note = state.filter !== "all" && hidden
-    ? `<div class="hidden-note">${hidden} game${hidden === 1 ? "" : "s"} on local TV only hidden · ${showAll}</div>`
+    ? `<div class="hidden-note">${hidden} game${hidden === 1 ? "" : "s"} not on national TV hidden · ${showAll}</div>`
     : "";
   gamesEl.innerHTML = list.map(gameHTML).join("") + note;
 }
