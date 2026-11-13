@@ -12,7 +12,14 @@ const LEAGUES = {
   mlb:  { name: "MLB",  path: "baseball/mlb",    emoji: "⚾", pass: "MLB.TV" },
   nfl:  { name: "NFL",  path: "football/nfl",    emoji: "🏈", pass: "NFL Sunday Ticket" },
   mls:  { name: "MLS",  path: "soccer/usa.1",    emoji: "⚽", pass: "Apple TV" },
+  // College: ask for the full FBS / Division I slate (the default feed is featured games only).
+  // "Can Watch" for college means real national TV — streaming-only games (ESPN+, B1G+…) need All Games.
+  ncaaf: { name: "NCAAF", path: "football/college-football", query: "groups=80&limit=300", emoji: "🏈", pass: "ESPN+", college: true },
+  ncaam: { name: "NCAAM", path: "basketball/mens-college-basketball", query: "groups=50&limit=300", emoji: "🏀", pass: "ESPN+", college: true },
+  ncaaw: { name: "NCAAW", path: "basketball/womens-college-basketball", query: "groups=50&limit=300", emoji: "🏀", pass: "ESPN+", college: true },
 };
+const feedURL = (dates) =>
+  `${API_BASE}/${L().path}/scoreboard?${[dates && `dates=${dates}`, L().query].filter(Boolean).join("&")}`;
 const params = new URLSearchParams(location.search);
 const TEAM_PARAM = (params.get("team") || "").toUpperCase();
 let league = document.documentElement.dataset.league;
@@ -62,10 +69,13 @@ function getChannels(comp) {
     const key = `${market}|${name}`;
     if (!map.has(key)) map.set(key, { name, market, stream });
   };
+  const radio = new Set();
   for (const g of comp.geoBroadcasts || []) {
-    add(g.media?.shortName, g.market?.type, (g.type?.shortName || "").toLowerCase() === "streaming");
+    const type = (g.type?.shortName || "").toLowerCase();
+    if (type === "radio") { radio.add(g.media?.shortName); continue; } // can't watch the radio
+    add(g.media?.shortName, g.market?.type, type === "streaming");
   }
-  for (const b of comp.broadcasts || []) for (const n of b.names || []) add(n, b.market);
+  for (const b of comp.broadcasts || []) for (const n of b.names || []) if (!radio.has(n)) add(n, b.market);
   const order = { national: 0, home: 1, away: 2 };
   return [...map.values()].sort((a, b) => (order[a.market] ?? 3) - (order[b.market] ?? 3));
 }
@@ -82,13 +92,14 @@ function parse(ev) {
       logo: t.logo || t.logoDark, logoDark: t.logoDark || t.logo, color: `#${t.color || "888888"}`, alt: `#${t.alternateColor || "444444"}`,
       record: c.records?.find((r) => r.type === "total")?.summary || c.records?.[0]?.summary || "",
       score: c.score, winner: c.winner,
+      rank: c.curatedRank?.current && c.curatedRank.current <= 25 ? c.curatedRank.current : null,
     };
   };
   const st = ev.status?.type || comp.status?.type || {};
   const channels = getChannels(comp);
   const away = pick("away"), home = pick("home");
   const mine = !!myTeam() && (away.abbr === myTeam() || home.abbr === myTeam());
-  const national = channels.some((c) => c.market === "national");
+  const national = channels.some((c) => c.market === "national" && !(L().college && c.stream));
   return {
     mine, watchable: national || mine,
     id: ev.id, date: new Date(ev.date), away, home,
@@ -114,7 +125,7 @@ function teamHTML(t, g) {
   return `<div class="team">
     <img class="lg-dark" src="${esc(t.logoDark)}" alt="${esc(t.full)} logo" loading="lazy" onerror="this.style.visibility='hidden'">
     <img class="lg-light" src="${esc(t.logo)}" alt="${esc(t.full)} logo" loading="lazy" onerror="this.style.visibility='hidden'">
-    <div class="abbr">${esc(t.abbr)}</div>
+    <div class="abbr">${t.rank ? `<small class="rank">#${t.rank}</small>` : ""}${esc(t.abbr)}</div>
     <div class="tname">${esc(t.name)}</div>
     ${t.record ? `<div class="rec">${esc(t.record)}</div>` : ""}
     ${showScore ? `<div class="score ${g.state === "post" && t.winner ? "win" : ""}">${esc(t.score ?? "0")}</div>` : ""}
@@ -204,8 +215,10 @@ function renderTicker(list) {
     const tv = g.channels.filter((c) => c.market === "national").map((c) => c.name).join("/") ||
                g.channels.map((c) => c.name).slice(0, 2).join("/") || "TV TBA";
     const when = g.state === "pre" ? timeStr(g.date) : g.state === "in" ? `LIVE ${g.away.score}-${g.home.score}` : `FINAL ${g.away.score}-${g.home.score}`;
-    return `<span>${L().emoji} ${esc(g.away.abbr)} @ ${esc(g.home.abbr)} · ${esc(when)} · <b>${esc(tv)}</b></span>`;
+    const nm = (t) => (t.rank ? `#${t.rank} ` : "") + t.abbr;
+    return `<span>${L().emoji} ${esc(nm(g.away))} @ ${esc(nm(g.home))} · ${esc(when)} · <b>${esc(tv)}</b></span>`;
   });
+  $("#ticker").style.animationDuration = `${Math.max(40, items.length * 7)}s`;
   $("#ticker").innerHTML = items.length ? items.join("") + items.join("") : `<span>NO GAMES TODAY · GO OUTSIDE · TOUCH GRASS</span>`;
 }
 
@@ -225,7 +238,7 @@ async function load({ quiet = false } = {}) {
   const key = ymd(state.day);
   try {
     const want = league;
-    const res = await fetch(`${API_BASE}/${L().path}/scoreboard?dates=${key}`, { cache: "no-store" });
+    const res = await fetch(feedURL(key), { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (key !== ymd(state.day) || want !== league) return; // user moved on
@@ -256,7 +269,7 @@ function nextGameDay(data) {
 // scoreboard holds the current week's slate, or the last games played.
 async function findNextFromCurrent(want, key) {
   try {
-    const d = await fetch(`${API_BASE}/${L().path}/scoreboard`, { cache: "no-store" }).then((r) => r.json());
+    const d = await fetch(feedURL(), { cache: "no-store" }).then((r) => r.json());
     if (key !== ymd(state.day) || want !== league) return;
     const end = new Date(state.day); end.setDate(end.getDate() + 1);
     const upcoming = (d.events || []).map((e) => new Date(e.date)).filter((t) => t >= end).sort((a, b) => a - b)[0];

@@ -2,7 +2,7 @@
 
 A retro, synthwave-arcade web app that shows tonight's NBA, WNBA, NHL, MLB, NFL and MLS games and the TV channels carrying them (national, home and away).
 
-- League dropdown (top-right): NBA, WNBA, NHL, MLB, NFL, MLS. Remembered between visits; link one directly with `?league=nhl`. On days with no games, a button jumps to the league's next game day
+- League dropdown (top-right): NBA, WNBA, NHL, MLB, NFL, MLS, College Football, Men's and Women's College Basketball (full FBS / Division I slates, with AP rankings; for college, "Can Watch" means national TV, so streaming-only games are under All Games). Remembered between visits; link one directly with `?league=nhl`. On days with no games, a button jumps to the league's next game day
 - Live data from ESPN's public scoreboard feed, so there's no API key or backend
 - Tip-off times in your local time zone
 - Live scores while games are on, refreshed every 60 seconds
